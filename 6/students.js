@@ -1,74 +1,115 @@
-var storeage = require('./storage');
+var storage = require('./storage');
 
-exports.getStudent = function (data, callback) {
-    if (!data || !data.id) {
-        let message = "Cannot get student. Id is missing";
-        console.error(message);
-        callback(message);
+function badRequest(req, res, message){
+    console.info(`Error in request ${req.method} ${req.url}: ${message}`);
+    res.statusCode = 400;
+    sendJson(res, {Success: false, Message: message});
+}
+
+function success(res, json)
+{
+    if (json) {
+        sendJson(res, {Success: true, Result: json});
     }
+    else {
+        sendJson(res, {Success: true});
+    }
+    
+}
 
-    storage.getStudent(data.id, callback);
+function sendJson(res, json){
+    res.setHeader("Content-Type", "application/json");
+    res.write(JSON.stringify(json));
+    res.end();
+}
+
+// GET /api/student?id=1
+exports.getStudent = function (req, res) {    
+    if (!req.query || !req.query.id) {
+        badRequest(req, res, "Cannot get student. Id is missing");
+        return;
+    }
+    let id = req.query.id;
+
+    storage.getStudent(id, function (err, student){
+        if (err) {
+            badRequest(req, res, err);
+            return;
+        }
+        success(res, student);
+    });
 };
 
-exports.getStudents = function (data) {
-    return [{
-        "id": 1,
-        "name": "test 1",
-        "birthdate": '2012-04-23'
-    }, {
-        "id": 2,
-        "name": "test 2",
-        "birthdate": '2011-01-01'
-    }]
+// GET  /api/student/all
+exports.getStudents = function (req, res) {
+    storage.getStudents(function (err, students){
+        if (err) {
+            badRequest(req, res, err);
+            return;
+        }
+        success(res, students);
+    });
 };
 
-
-exports.createStudent = function (query, student, callback) {
-    if (!student) {
-        let message = "Cannot add student. Data is missing";
-        console.error(message);
-        callback(message);
+// POST /api/student/create { name"="Alex", "birthdate"="2012-04-23"}
+exports.createStudent = function (req, res) {
+    if (!req.body) {
+        badRequest(req, res, "Cannot add student. Data is missing");
+        return;
     }
-
+    let student = req.body;
     if (!student.name) {
-        let message = "Cannot add student. Student name is missing";
-        console.error(message);
-        callback(message);
+        badRequest(req, res, "Cannot add student. Student name is missing");
+        return;
     }
 
-    storage.createStudent(student, callback);
+    storage.createStudent(student, function (err, id){
+        if (err) {
+            badRequest(req, res, err);
+            return;
+        }
+        success(res, id);
+    });
 };
 
-exports.deleteStudent = function (data) {
-    if (!data.id) {
-        let message = "Cannot delete student. Id is missing";
-        console.error(message);
-        return {
-            success:false,
-            message:message
-        };
+// DELETE /api/student?id=1
+exports.deleteStudent = function (req, res) {
+    if (!req.query || !req.query.id) {
+        badRequest(req, res, "Cannot delete student. Id is missing");
+        return;
     }
-    console.info(`Student "${data.id}" deleted`);
+    let id = req.query.id;
     
-    return {
-        success:true
-    };
+    storage.deleteStudent(id, function (err){
+        if (err) {
+            badRequest(req, res, err);
+            return;
+        }
+        success(res);
+    });
 };
 
-
-
-exports.updateStudent = function (data) {
-    if (!data.id) {
-        let message = "Cannot update student. Id is missing";
-        console.error(message);
-        return {
-            success:false,
-            message:message
-        };
+// POST /api/student/update?id=1 { name"="Alex", "birthdate"="2012-04-23"}
+exports.updateStudent = function (req, res) {
+    if (!req.query || !req.query.id) {
+        badRequest(req, res, "Cannot update student. Id is missing");
+        return;
+    }    
+    let id = req.query.id;
+    if (!req.body) {
+        badRequest(req, res, "Cannot update student. Data is missing");
+        return;
     }
-    console.info(`Student "${data.id}" updated`);
-    
-    return {
-        success:true
-    };
+    let student = req.body;
+    if (!student.name) {
+        badRequest(req, res, "Cannot update student. Student name is missing");
+        return;
+    }
+    storage.updateStudent(id, student, function (err){
+        if (err) {
+            badRequest(req, res, err);
+            return;
+        }
+        success(res);
+    });
 };
