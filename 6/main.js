@@ -9,11 +9,10 @@
 //
 
 
-var http = require('http');
-var fs = require('fs');
-var url = require('url');
-var routing = require('./routing');
-
+let http = require('http');
+let fs = require('fs');
+let url = require('url');
+let routing = require('./routing');
 
 let port = 8080;
 
