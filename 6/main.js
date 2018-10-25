@@ -10,8 +10,8 @@
 
 
 let http = require('http');
-let fs = require('fs');
 let url = require('url');
+let log = require('./log');
 let routing = require('./routing');
 
 let port = 8080;
@@ -27,7 +27,7 @@ function tryExtendRequest(req, res, callback){
         try {                
             req.body = JSON.parse(data.toString());            
         } catch (error) {
-            console.error(error);
+            log.error(error);            
             res.statusCode = 400;
             res.write("Cannot parse body of request. Body should be valid json")
             res.end();
@@ -50,7 +50,18 @@ function findRoute(req){
     }    
 }
 
+(function initEvents() {
+    log.on(log.events.error, message => {
+        console.error(message);
+    });
+})()
+
 http.createServer(function (req, res){
+    log.error("Test error");
+    log.warn("Test warning");
+    log.info("Test info");
+
+
     tryExtendRequest(req, res, function (req, res){
         var route = findRoute(req) || {};
         if (route.handle)
