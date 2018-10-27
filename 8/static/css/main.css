@@ -1,0 +1,64 @@
+header {
+    display:flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background: url("../img/header.jpg");
+    background-size: cover;
+    background-position: 50%;
+    background-attachment: fixed;
+}
+
+.w-menu {
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    padding:0 50px;
+    height:40px;
+    background: rgba(0,0,0,0.4);
+    color:#fff;
+    z-index:100;
+
+}
+
+.w-welcome {
+    color:#fff;
+    text-align: center;
+}
+.w-welcome h1 {
+    font-size:45px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.w-welcome h3 {
+    font-size: 30px;
+    font-family: serif;
+    font-style: italic;
+}
+.w-welcome img{
+    border-radius: 50%;
+    height: 50vh;
+}
+.w-welcome a{
+    color: #fff;
+}
+section {
+    padding: 70px 0;
+    border-bottom: 1px solid #ccc;
+}
+
+section h4 {
+    margin-bottom: 40px;
+    text-align: center;
+    text-transform: uppercase;
+    font-size: 32px;
+}
+
+footer {
+    padding: 40px 0;
+
+    background: #333;
+    color: #fff;
+}
