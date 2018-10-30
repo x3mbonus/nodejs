@@ -1,9 +1,11 @@
 import Student from './Student';
-import Teacher from './Teacher';
+import Lector from './Lector';
 import Course from './Course';
+import User from './User';
 
 export {
     Student,
-    Teacher,
-    Course
+    Lector,
+    Course,
+    User
 };

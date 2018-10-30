@@ -3,9 +3,11 @@
 $(function () {
     var
         COURSES = '.school-courses',
-        COURSE_DIALOG = '#course-dialog',        
+        COURSE_DIALOG = '#course-dialog',
         COURSE_LABEL = '#add-course-label',
-        COURSE_SUBMIT = '#course-submit',
+        COURSE_CREATE = '#course-create',
+        COURSE_UPDATE = '#course-update',
+        COURSE_DELETE = '#course-delete',
         COURSE_ID = '#course-id',
         COURSE_NAME = '#course-name',
         COURSE_DETAILS = '#course-details',
@@ -20,18 +22,23 @@ $(function () {
             <img src="#src" alt="">
             <h5>#title</h5>
             <h6>#smallTitle</h6>
-            <button type="button" 
-                class="btn btn-link btn-sm text-secondary course-edit" 
-                data-id="#id"  
-                data-action="#update"  
-                data-toggle="modal" 
-                data-target="#course-dialog">[Edit]</button>
-            <button type="button" 
-                class="btn btn-link btn-sm text-secondary course-edit" 
-                data-id="#id"  
-                data-action="#delete"  
-                data-toggle="modal" 
-                data-target="#course-dialog">[Delete]</button>
+            <div class="text-secondary small for-authorized">
+            [
+                <button type="button"
+                    class="btn btn-link btn-sm text-secondary course-edit p-0" 
+                    data-id="#id"  
+                    data-action="update"  
+                    data-toggle="modal" 
+                    data-target="#course-dialog">Edit</button>
+                    |
+                <button type="button m-0" 
+                    class="btn btn-link btn-sm text-secondary course-delete p-0" 
+                    data-id="#id"  
+                    data-action="delete"  
+                    data-toggle="modal" 
+                    data-target="#course-dialog">Delete</button>
+            ]
+            </div>
         </div>`;
 
     init();
@@ -42,132 +49,142 @@ $(function () {
 
     function init() {
         loadCourses();
-        initCourseAddPopup();
-        initCourseEditPopup();
+        initCoursePopup();
     }
 
-    function initCourseAddPopup() {
-        $(COURSE_SUBMIT).click(function () {
-            var id = $(COURSE_ID).val(),
-                name = $(COURSE_NAME).val(),
-                details = $(COURSE_DETAILS).val(),
-                imageUrl = $(COURSE_IMAGE_URL).val(),
-                action = id ? `update/${id}` : "create",
-                url = `${config.serverUrl}/api/courses/${action}`;
+    function post(urlPart, type, data){
+        $.ajax({
+            type: type,
+            url: `${config.serverUrl}/api/courses${urlPart}`,
+            contentType: 'application/json',
+            data: JSON.stringify(data || {}),
+            dataType: "json",
+            beforeSend: function(request) {
+                request.setRequestHeader("Authorization", Cookies.get('Token'));
+            },
+            success: function () {                
+                $(COURSE_DIALOG).modal('hide');
+                loadCourses();
+            },
+            error: error,
+        });
+    }
 
-            $.ajax({
-                type: "POST",
-                url: url,
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    name: name,
-                    details: details,
-                    imageUrl: imageUrl,
-                }),
-                dataType: "json",
-                success: function (data) {
-                    if (data && data.Success) {
-                        $(COURSE_DIALOG).modal('hide');
-                        loadCourses();
-                    } else {
-                        error(data);
-                    }
-                },
-                error: error
-            });
+    function initCoursePopup() {
+        $(COURSE_CREATE).click(function () {
+            post('/create', 'POST', {
+                name: $(COURSE_NAME).val(),
+                details:  $(COURSE_DETAILS).val(),
+                imageUrl: $(COURSE_IMAGE_URL).val()
+            });            
+        });
+
+        $(COURSE_UPDATE).click(function () {
+            post(`/update/${$(COURSE_ID).val()}`, 'PUT', {
+                name: $(COURSE_NAME).val(),
+                details:  $(COURSE_DETAILS).val(),
+                imageUrl: $(COURSE_IMAGE_URL).val()
+            });            
+        });
+
+        $(COURSE_DELETE).click(function () {
+            post(`/delete/${$(COURSE_ID).val()}`, "DELETE");            
         });
 
         $(COURSE_DIALOG).on('show.bs.modal', function (event) {
-            var button = $(event.relatedTarget);
-            var action = button.data('action');
-            var id = button.data('id');
-            if (action){
+            var $button = $(event.relatedTarget),
+                action = $button.data('action'),
+                id = $button.data('id'),
+                $modal = $(this);
+            if (action) {
                 $.ajax({
                     type: "GET",
                     url: config.serverUrl + "/api/courses/" + id,
-                    success: function(course){
-                        modal.find(COURSE_LABEL).text('Edit course');
-                        modal.find(COURSE_SUBMIT).text('Save');
-                        modal.find(COURSE_ID).val(course.Result.id);
-                        modal.find(COURSE_NAME).val(course.Result.name);
-                        modal.find(COURSE_DETAILS).val(course.Result.details);
-                        modal.find(COURSE_IMAGE_URL).val(course.Result.imageUrl);
+                    success: function (course) {
+                        if (action === 'update') {
+                            initUpdate($modal, course);
+                        } else if (action === 'delete') {
+                            initDelete($modal, course);
+                        }
                     },
                     error: error
-                }); 
-                if (action === 'update'){
-
-                } else if (action === 'delete'){
-    
-                }
+                });
             } else {
-                
-            }                       
+                initCreate($modal);
+            }
         });
-
-    }
-    function initDialog(values){
-        modal.find(COURSE_LABEL).text(values.label);
-        modal.find(COURSE_SUBMIT).text(values.button);
-        modal.find(COURSE_ID).val(values.id);
-        modal.find(COURSE_NAME).val(values.name);
-        modal.find(COURSE_DETAILS).val(values.details);
-        modal.find(COURSE_IMAGE_URL).val(values.imageUrl);
     }
 
-    function initCreate(modal){
-        initDialog({
-            label:'Add new course',
-            button:'Add',
-            id: '',
-            name:'',
-            details:'',
-            imageUrl:''
-        });            
+    function initDialog($modal, values) {        
+        $modal.find(COURSE_CREATE).toggle(values.action === 'create');        
+        $modal.find(COURSE_UPDATE).toggle(values.action === 'update');        
+        $modal.find(COURSE_DELETE).toggle(values.action === 'delete');        
+        $modal.find(COURSE_LABEL).text(values.label);        
+        $modal.find(COURSE_ID).val(values._id);
+        $modal.find(COURSE_NAME).val(values.name).prop('readonly', values.action === 'delete');
+        $modal.find(COURSE_DETAILS).val(values.details).prop('readonly', values.action === 'delete');
+        $modal.find(COURSE_IMAGE_URL).val(values.imageUrl).prop('readonly', values.action === 'delete');
     }
 
+    function initCreate($modal) {
+        initDialog($modal, {
+            label: 'Add new course',
+            button: 'Add',
+            _id: '',
+            name: '',
+            details: '',
+            imageUrl: '',
+            action: 'create'
+        });
+    }
 
+    function initUpdate($modal, course) {
+        initDialog($modal, {
+            label: 'Update course',
+            button: 'Save',
+            _id: course._id,
+            name: course.name,
+            details: course.details,
+            imageUrl: course.imageUrl,
+            action: 'update'
+        });
+    }
 
+    function initDelete($modal, course) {
+        initDialog($modal, {
+            label: 'Delete course',
+            button: 'Delete',
+            _id: course._id,
+            name: course.name,
+            details: course.details,
+            imageUrl: course.imageUrl,
+            action: 'delete'
+        }, true);
+    }
 
     function loadCourses() {
         $.ajax({
             type: "GET",
             url: config.serverUrl + "/api/courses/all",
-            success: getSuccess,
+            success: function (data) {
+                if (data && data.length !== undefined) {
+                    var coursesHtml = data.map(course => {
+                        return courseTemplate
+                            .replace(/#id/g, course._id)
+                            .replace(/#src/g, course.imageUrl)
+                            .replace(/#title/g, course.name)
+                            .replace(/#smallTitle/g, course.details);
+        
+                    });
+                    $courses.html(coursesHtml);                              
+                    document.schoolUser.toggleAuthElements();
+                } else {
+                    error(data);
+                }
+            },
             error: error
         });
     }
 
-    function getSuccess(data) {
-        if (data && data.Success) {
-
-            if (data.Result &&
-                data.Result.length > 0) {
-
-                var coursesHtml = '';
-                for (var i = 0; i < data.Result.length; i++) {
-                    var course = data.Result[i];
-                    var html = courseTemplate
-                        .replace('#id', course.id)
-                        .replace('#src', course.imageUrl)
-                        .replace('#title', course.name)
-                        .replace('#smallTitle', course.details);
-
-                    coursesHtml += html;
-
-                }
-                if (coursesHtml) {
-                    $courses.html(coursesHtml);
-                }
-            }
-
-        } else {
-            error(data);
-        }
-
-    }
-
-    function initCourseEditPopup() {
-        
-    }
+    
 });

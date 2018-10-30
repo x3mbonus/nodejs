@@ -1,13 +1,11 @@
 import { Router } from 'express';
 import { students } from '../views';
+import authMiddleware from './authMiddleware';
 
-const router = new Router();
+export const router = new Router();
 
+router.use("/create", authMiddleware).route("/create").post(students.create);
+router.use("/delete/:id", authMiddleware).route("/delete/:id").delete(students.remove);
+router.use("/update/:id", authMiddleware).route("/update/:id").put(students.update);
 router.route("/all").get(students.all);
-router.route("/create").post(students.create);
-router.route("/delete/:id").delete(students.delete);
-router.route("/update/:id").put(students.update);
 router.route("/:id").get(students.get);
-
-
-export default router;

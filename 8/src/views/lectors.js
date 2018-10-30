@@ -1,119 +1,118 @@
-//var studentRepository = require('../services').studentRepositrory;
+import { Lector } from '../models'
 
-function badRequest(req, res, message){
-    console.info(`Error in request ${req.method} ${req.url}: ${message}`);
-    res.statusCode = 400;
-    sendJson(res, {Success: false, Message: message});
+// GET /api/lectors/:id
+async function get(req, res) {
+    let id = req.params.id;
+    if(!id){
+        res.status(404).json({Error: `Cannot get lector. Id is missing`});
+        return;
+    }
+    try {
+        let lector = await Lector.findById(id);
+        if (!lector)
+        {
+            res.status(404).json({Error: `Cannot find lector with id ${id}`});
+            return;
+        }
+        res.status(200).json(lector);
+        return;
+    }
+    catch(err){
+        console.log(err);
+        res.status(500).json({Error: "Something went wrong."});
+    }
+};
+
+// GET  /api/lectors/all
+async function all(req, res) {
+    try {
+        let lectors = await Lector.find({});
+        res.status(200).json(lectors);
+    }
+    catch(err){
+        console.log(err);
+        res.status(500).json({Error: "Something went wrong."});
+    }
 }
 
-function success(res, json)
+
+// POST /api/lectors/create
+async function create(req, res) {
+    let lectorParam = req.body;
+    if(!lectorParam){
+        res.status(400).json({Error: "Cannot add lector. Data is missing"});
+        return;
+    }
+    try {
+        let lector = new Lector(lectorParam);
+
+        let err = lector.validateSync();
+        if (err) {
+            res.status(409).json({Error: "Lector is not valid.", Message: err});
+            return;
+        }
+        console.log(lector);
+
+        let result = await lector.save();
+
+        res.status(200).json(result);
+    }
+    catch(err){
+        console.log(err);
+        res.status(500).json({Error: "User was not created due to internal server error"});
+    }
+};
+
+// DELETE /api/lectors/:id
+async function remove(req, res) {
+    let id = req.params.id;
+    if(!id){
+        res.status(404).json({Error: `Cannot delete lector. Id is missing`});
+        return;
+    }
+    
+    try {
+        let result = await Lector.findByIdAndDelete(id);
+        res.status(200).json(result);
+    }
+    catch(ex){
+        console.log(err);
+        res.status(500).json({Error: "User was not deleted due to internal server error"});
+    }
+};
+
+// POST /api/lectors/update/:id
+async function update(req, res) {
+    let id = req.params.id;
+    if(!id){
+        res.status(404).json({Error: `Cannot update lector. Id is missing`});
+        return;
+    }
+
+    let lector = req.body;
+    if(!lector){
+        res.status(400).json({Error: "Cannot update lector. Data is missing"});
+        return;
+    }
+
+    try {
+        
+        let result = await Lector.findOneAndUpdate({_id: id}, lector);        
+
+        res.status(200).json(result);
+        return;
+    }
+    catch(err){
+        console.log(err);
+        res.status(500).json({Error: "User was not updated due to internal server error"});
+    }
+};
+
+export let lectors =
 {
-    if (json) {
-        sendJson(res, {Success: true, Result: json});
-    }
-    else {
-        sendJson(res, {Success: true});
-    }
-    
-}
-
-function sendJson(res, json){
-    res.setHeader("Content-Type", "application/json");
-    res.write(JSON.stringify(json));
-    res.end();
-}
-
-// GET /api/student?id=1
-exports.get = function (req, res) {
-    let id = req.params["id"];
-    if (!id) {
-        badRequest(req, res, "Cannot get student. Id is missing");
-        return;
-    }
-    
-
-    studentRepository.getStudent(id, function (err, student){
-        if (err) {
-            badRequest(req, res, err);
-            return;
-        }
-        success(res, student);
-    });
-};
-
-// GET  /api/student/all
-exports.all = function (req, res) {
-    studentRepository.getStudents(function (err, students){
-        if (err) {
-            badRequest(req, res, err);
-            return;
-        }
-        success(res, students);
-    });
-};
-
-// POST /api/student/create { name"="Alex", "birthdate"="2012-04-23"}
-exports.create = function (req, res) {
-    if (!req.body) {
-        badRequest(req, res, "Cannot add student. Data is missing");
-        return;
-    }
-    let student = req.body;
-    if (!student.name) {
-        badRequest(req, res, "Cannot add student. Student name is missing");
-        return;
-    }
-
-    studentRepository.createStudent(student, function (err, id){
-        if (err) {
-            badRequest(req, res, err);
-            return;
-        }
-        success(res, id);
-    });
-};
-
-// DELETE /api/student?id=1
-exports.delete = function (req, res) {
-    let id = req.params["id"];
-    if (!id) {
-        badRequest(req, res, "Cannot delete student. Id is missing");
-        return;
-    }
-    
-    studentRepository.deleteStudent(id, function (err){
-        if (err) {
-            badRequest(req, res, err);
-            return;
-        }
-        success(res);
-    });
-};
-
-// POST /api/student/update?id=1 { name"="Alex", "birthdate"="2012-04-23"}
-exports.update = function (req, res) {
-    let id = req.params["id"];
-    if (!id) {
-        badRequest(req, res, "Cannot update student. Id is missing");
-        return;
-    }    
-    
-    if (!req.body) {
-        badRequest(req, res, "Cannot update student. Data is missing");
-        return;
-    }
-
-    let student = req.body;
-    if (!student.name) {
-        badRequest(req, res, "Cannot update student. Student name is missing");
-        return;
-    }
-    
-    studentRepository.updateStudent(id, student, function (err){
-        if (err) {
-            badRequest(req, res, err);
-            return;
-        }
-        success(res);
-    });
+    get,
+    all,
+    create,
+    update,
+    remove
 };
