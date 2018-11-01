@@ -11,4 +11,4 @@ let app = express();
 app.use(bodyParser.json());
 register_routes(app);
 
-app.listen(port, ()=> {console.log(`Listening port ${port}`)});
+app.listen(port, ()=> {console.log(`Server http://localhost:${port} started`)});

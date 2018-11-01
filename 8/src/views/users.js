@@ -1,7 +1,17 @@
 import { User } from '../models'
+import jwt from 'jsonwebtoken';
 
-function getToken(){
-    return 'Bearer: asdsadasdasdasdsadas';
+const secretKey = 'asdsadasdasdasdsadas';
+
+
+function getToken(userName){
+      var token = jwt.sign({
+        data: {
+            user:userName
+        }
+      }, secretKey, { expiresIn: '1m' });
+
+    return token;
 }
 
 async function signUp(req, res) {
@@ -26,7 +36,7 @@ async function signUp(req, res) {
         });
 
         await user.save();
-        let token = getToken();
+        let token = getToken(user.email);
         res.status(200).json({token: token});
         return;
     }
@@ -56,7 +66,7 @@ async function signIn(req, res) {
             res.status(400).json({Error: `Check your password`});
             return;
         }
-        let token = getToken();
+        let token = getToken(user.email);
         res.status(200).json({token: token});
         return;
     }
@@ -66,21 +76,33 @@ async function signIn(req, res) {
     }
 };
 
-function isAuthorized(req, res){
-    if (!req.headers.authorization ||
-        req.headers.authorization !== users.getToken()) {
-        res.status(200).json({IsAuthorized:false});
-        return;
-    }
-    res.status(200).json({IsAuthorized:true});
+function isAuthorized(req, res) {
+    verify(req, function(err, decoded) {
+        if (err) {
+            res.status(200).json({IsAuthorized:false, Message: err});
+            return;
+        }
+        res.status(200).json({IsAuthorized:true, User: decoded.user});
+      });
 }
 
+
+function verify(req, callback){
+    let token = req.headers.authorization;
+
+    if (!token){
+        callback('Authorization header is missing');
+        return;
+    }
+
+    jwt.verify(token, secretKey, callback);
+}
 
 
 export let users =
 {
     signIn,
     signUp,
-    getToken,
+    verify,
     isAuthorized
 };
